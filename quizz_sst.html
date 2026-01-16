@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Révisions SST 2024 - Quiz Interactif</title>
+    <style>
+        :root {
+            --primary: #e63946;
+            --secondary: #457b9d;
+            --light: #f1faee;
+            --dark: #1d3557;
+            --success: #2a9d8f;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        header {
+            text-align: center;
+            border-bottom: 3px solid var(--primary);
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+        .quiz-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .question-card {
+            display: none;
+        }
+        .question-card.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .options {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button.option-btn {
+            background: white;
+            border: 2px solid var(--secondary);
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: left;
+            font-size: 16px;
+        }
+        button.option-btn:hover {
+            background: var(--secondary);
+            color: white;
+        }
+        .feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .correct { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .wrong { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        #next-btn, #restart-btn {
+            display: none;
+            margin-top: 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #result-screen {
+            text-align: center;
+            display: none;
+        }
+        .score-circle {
+            font-size: 48px;
+            color: var(--primary);
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Révisions Formation SST</h1>
+        <p>Session Initiale - Janvier 2024</p>
+    </header>
+
+    <div id="quiz-screen">
+        <div class="quiz-info">
+            <span>Question <span id="current-idx">1</span> / <span id="total-questions">10</span></span>
+            <span>Score: <span id="live-score">0</span></span>
+        </div>
+
+        <div id="question-container">
+            </div>
+
+        <div id="feedback" class="feedback"></div>
+        <button id="next-btn" onclick="nextQuestion()">Question Suivante</button>
+    </div>
+
+    <div id="result-screen">
+        <h2>Résultat Final</h2>
+        <div class="score-circle"><span id="final-score">0</span> / <span id="final-total">0</span></div>
+        <p id="performance-msg"></p>
+        <button id="restart-btn" onclick="location.reload()" style="display: inline-block;">Recommencer le Quiz</button>
+    </div>
+</div>
+
+<script>
+const quizData = [
+    { q: "Qu'est-ce qu'un accident de travail (AT) ?", a: ["Uniquement entre le bureau et la maison", "Entre domicile/travail, y compris courses ou plein d'essence sur le trajet", "Uniquement si l'on conduit une voiture de fonction"], correct: 1 },
+    { q: "En cas d'hémorragie, que signifient les 3 A ?", a: ["Appeler, Agir, Attendre", "Analyser, Alerter, Allonger", "Appui, Allonger, Alerter"], correct: 2 },
+    { q: "Quel est le numéro d'alerte SMS pour les personnes sourdes ou muettes ?", a: ["112", "114", "18"], correct: 1 },
+    { q: "Quelle est la durée totale d'un cycle de sirène d'alerte nationale ?", a: ["3 fois 1 minute", "3 fois 1 minute 41 secondes", "5 minutes continues"], correct: 1 },
+    { q: "En cas d'hémorragie avec corps étranger, quelle est l'action interdite ?", a: ["Appeler les secours", "Faire un garrot", "Appuyer directement sur la plaie"], correct: 2 },
+    { q: "Où doit-on placer un garrot tourniquet ?", a: ["Directement sur la plaie", "À 4-5 cm au-dessus de la plaie (hors articulation)", "Sur l'articulation la plus proche"], correct: 1 },
+    { q: "Quel est le but d'un pansement compressif ?", a: ["Nettoyer la plaie", "Remplacer l'appui manuel", "Faire joli"], correct: 1 },
+    { q: "Une perte de combien de litres de sang peut être mortelle ?", a: ["0.5 litre", "1 litre", "2 à 3 litres"], correct: 2 },
+    { q: "Face à un étouffement total, quelle est la première technique ?", a: ["Méthode de Heimlich", "5 claques vigoureuses dans le dos", "Faire boire de l'eau"], correct: 1 },
+    { q: "Pour un nourrisson qui s'étouffe, quelle partie de la main utilise-t-on pour les compressions ?", a: ["Le poing", "2 doigts", "Toute la paume"], correct: 1 },
+    { q: "Quelle est la règle d'arrosage pour une brûlure thermique ?", a: ["Eau chaude pendant 5 min", "Eau froide (tempérée) immédiatement jusqu'à fin de douleur", "Glace pendant 20 min"], correct: 1 },
+    { q: "Pour un malaise, quelle question est cruciale à poser à la victime ?", a: ["Prenez-vous des médicaments ?", "Quel est votre signe astro ?", "Avez-vous mangé à la cantine ?"], correct: 0 },
+    { q: "Quels sont les deux tests pour suspecter un AVC ?", a: ["Courir et sauter", "Serrer les mains et vérifier le sourire", "Épeler son nom à l'envers"], correct: 1 },
+    { q: "Quelle est la fréquence du massage cardiaque chez l'adulte ?", a: ["30 compressions / 2 insufflations", "15 compressions / 2 insufflations", "100 compressions sans arrêt"], correct: 0 },
+    { q: "Quelle est la profondeur de compression pour un adulte ?", a: ["2-3 cm", "5-6 cm", "10 cm"], correct: 1 },
+    { q: "Quelle face de la couverture de survie contre la victime pour réchauffer ?", a: ["Côté doré", "Côté argenté", "Peu importe"], correct: 1 },
+    { q: "Que faire en cas de projection chimique dans l'œil ?", a: ["Frotter l'œil", "Rincer abondamment à l'eau claire (douche de sécurité)", "Mettre un pansement sec"], correct: 1 },
+    { q: "Le DAE (Défibrillateur) est-il utilisable sous la pluie ?", a: ["Oui, sans danger", "Non, risque d'explosion", "Seulement si la victime est sur un sol sec"], correct: 2 },
+    { q: "Combien de temps maximum pour alerter après avoir constaté un danger ?", a: ["1 heure", "Immédiatement après mise en sécurité", "À la fin de la journée"], correct: 1 },
+    { q: "Que signifie l'acronyme EPC ?", a: ["Équipement de Protection Collective", "Ensemble des Premiers Citoyens", "Étude des Protections Chimiques"], correct: 0 },
+    { q: "Une plaie au thorax doit être mise dans quelle position ?", a: ["Allongée jambes levées", "Assise ou demi-assise", "Sur le ventre"], correct: 1 },
+    { q: "Une plaie à l'abdomen doit être mise dans quelle position ?", a: ["Assise", "Allongée à plat dos", "Allongée jambes fléchies"], correct: 2 },
+    { q: "Quelle est la première étape de la chaîne de survie ?", a: ["Défibrillation", "Reconnaissance et Alerte", "Massage cardiaque"], correct: 1 },
+    { q: "En cas d'électrisation, quelle est la priorité ?", a: ["Toucher la victime pour l'écarter", "Couper le courant avant de toucher", "Appeler les pompiers sans rien faire"], correct: 1 },
+    { q: "Quel est le risque majeur d'une plaie grave ?", a: ["L'infection", "L'hémorragie ou la détresse circulatoire", "La cicatrice"], correct: 1 },
+    { q: "Quelle est l'astuce pour garder des gants propres en intervention ?", a: ["Les mettre dans un œuf Kinder", "Les garder en poche", "Les laisser dans le camion"], correct: 0 },
+    { q: "Peut-on mettre du beurre sur une brûlure ?", a: ["Oui, ça apaise", "Non, jamais de corps gras", "Seulement si c'est du beurre salé"], correct: 1 },
+    { q: "Comment vérifier la respiration ?", a: ["En écoutant, sentant et regardant le ventre/poitrine (10 sec)", "En mettant un miroir devant la bouche", "En pinçant la victime"], correct: 0 },
+    { q: "À quel moment arrête-t-on la réanimation cardiaque ?", a: ["Au bout de 10 minutes", "Quand on est fatigué", "À l'arrivée des secours ou reprise de respiration"], correct: 2 },
+    { q: "Que faire si le DAE demande de 'ne pas toucher la victime' ?", a: ["Continuer le massage", "S'écarter et ne plus toucher la victime", "Débrancher l'appareil"], correct: 1 },
+    { q: "Quelle est la marque de la trousse de secours mentionnée ?", a: ["YLEA", "Mercurochrome", "Croix Rouge"], correct: 0 },
+    { q: "En cas d'AVC, peut-on donner à boire ?", a: ["Oui, de l'eau sucrée", "Non, jamais (risque de fausse route)", "Seulement du café"], correct: 1 },
+    { q: "Le non-respect des consignes de sécurité par le salarié est une...", a: ["Faute légère", "Faute grave", "Optionnelle"], correct: 1 },
+    { q: "Que signifie le 112 ?", a: ["Le numéro de la police uniquement", "Le numéro d'urgence européen", "L'annuaire médical"], correct: 1 },
+    { q: "Le sauveteur doit-il se protéger avant d'agir ?", a: ["Oui, toujours (Protection)", "Non, il doit se sacrifier", "Seulement s'il a le temps"], correct: 0 },
+    { q: "Comment s'appelle l'appareil pour un massage cardiaque automatique ?", a: ["LUCAS", "MARC", "JULIEN"], correct: 0 },
+    { q: "Que faire pour une brûlure chimique ?", a: ["Mettre du vinaigre", "Rincer abondamment sans frotter", "Attendre que ça s'arrête"], correct: 1 },
+    { q: "La PLS sert à quoi ?", a: ["Reposer la victime", "Maintenir les voies aériennes libres", "Réveiller la personne"], correct: 1 },
+    { q: "Un junior (enfant) en arrêt cardiaque, on commence par quoi ?", a: ["30 compressions", "5 insufflations initiales", "Le défibrillateur direct"], correct: 1 },
+    { q: "Si la victime d'étouffement devient inconsciente, que faire ?", a: ["Continuer les claques", "Démarrer une réanimation cardiaque", "L'asseoir"], correct: 1 },
+    { q: "Combien de temps dure l'alerte de fin de danger des sirènes ?", a: ["30 secondes", "3 cycles", "Un signal continu de 30 secondes"], correct: 2 },
+    { q: "Quelle information donner en premier aux secours ?", a: ["Votre âge", "La localisation précise", "La météo"], correct: 1 },
+    { q: "Le garrot tourniquet se pose sur quel type d'os ?", a: ["Un os unique (fémur/humérus)", "Deux os (avant-bras)", "Peu importe"], correct: 0 },
+    { q: "En cas de malaise, si la victime ne peut plus parler, c'est...", a: ["Normal", "Une aggravation (Alerter à nouveau)", "Une envie de dormir"], correct: 1 },
+    { q: "Où se trouve le SAMU 44 ?", a: ["CHU de Nantes", "Mairie de Saint-Nazaire", "Paris"], correct: 0 },
+    { q: "Un défibrillateur peut-il être utilisé sur un enfant ?", a: ["Non jamais", "Oui, avec électrodes pédiatriques si possible", "Seulement après 18 ans"], correct: 1 },
+    { q: "Que faire si une victime saigne du nez ?", a: ["Pencher la tête en arrière", "Pencher la tête en avant et pincer les narines", "S'allonger par terre"], correct: 1 },
+    { q: "Peut-on retirer un vêtement collé à une brûlure ?", a: ["Oui, vite", "Non, jamais", "Seulement si c'est synthétique"], correct: 1 },
+    { q: "Quel est l'impact d'une bonne prévention en entreprise ?", a: ["Baisse des cotisations sociales", "Augmentation des impôts", "Plus de vacances"], correct: 0 },
+    { q: "Qui définit le contenu de la trousse de secours ?", a: ["Le patron", "Le médecin du travail", "Le stagiaire"], correct: 1 }
+];
+
+let currentQuestion = 0;
+let score = 0;
+
+function initQuiz() {
+    document.getElementById('total-questions').innerText = quizData.length;
+    showQuestion();
+}
+
+function showQuestion() {
+    const q = quizData[currentQuestion];
+    const container = document.getElementById('question-container');
+    
+    let html = `
+        <div class="question-card active">
+            <h3>${q.q}</h3>
+            <div class="options">
+                ${q.a.map((opt, i) => `
+                    <button class="option-btn" onclick="checkAnswer(${i})">${opt}</button>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    container.innerHTML = html;
+    document.getElementById('current-idx').innerText = currentQuestion + 1;
+}
+
+function checkAnswer(choice) {
+    const q = quizData[currentQuestion];
+    const feedback = document.getElementById('feedback');
+    const btns = document.querySelectorAll('.option-btn');
+    
+    // Désactiver les boutons
+    btns.forEach(b => b.disabled = true);
+    
+    if(choice === q.correct) {
+        score++;
+        feedback.innerText = "✅ Correct !";
+        feedback.className = "feedback correct";
+        btns[choice].style.background = "#2a9d8f";
+        btns[choice].style.color = "white";
+    } else {
+        feedback.innerText = "❌ Mauvaise réponse. La bonne était : " + q.a[q.correct];
+        feedback.className = "feedback wrong";
+        btns[choice].style.background = "#e63946";
+        btns[choice].style.color = "white";
+        btns[q.correct].style.border = "3px solid #2a9d8f";
+    }
+    
+    feedback.style.display = "block";
+    document.getElementById('next-btn').style.display = "block";
+    document.getElementById('live-score').innerText = score;
+}
+
+function nextQuestion() {
+    currentQuestion++;
+    document.getElementById('feedback').style.display = "none";
+    document.getElementById('next-btn').style.display = "none";
+    
+    if(currentQuestion < quizData.length) {
+        showQuestion();
+    } else {
+        showResults();
+    }
+}
+
+function showResults() {
+    document.getElementById('quiz-screen').style.display = "none";
+    const resultScreen = document.getElementById('result-screen');
+    resultScreen.style.display = "block";
+    
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('final-total').innerText = quizData.length;
+    
+    let msg = "";
+    const ratio = score / quizData.length;
+    if(ratio === 1) msg = "Parfait ! Vous êtes un SST d'élite ! 🏆";
+    else if(ratio >= 0.7) msg = "Très bien ! Vous maîtrisez l'essentiel. 👍";
+    else msg = "Une petite révision du document s'impose. 📚";
+    
+    document.getElementById('performance-msg').innerText = msg;
+}
+
+initQuiz();
+</script>
+
+</body>
+</html>
